@@ -18,7 +18,7 @@ extern XNextEvent
 extern printf
 extern exit
 
-%define	StructureNotifyMask	131072
+%define	StructureNotifyMask	131077
 %define KeyPressMask		1
 %define ButtonPressMask		4
 %define MapNotify		19
@@ -31,7 +31,7 @@ extern exit
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NBLOOP  3
+%define NB_TRIANGLES  3
 
 global main
 
@@ -44,7 +44,7 @@ width:         	resd	1
 height:        	resd	1
 window:		resq	1
 gc:		resq	1
-count:           resb    1
+triangles_count:           resb    1
 
 section .data
 
@@ -57,83 +57,91 @@ y2:	dd	500
 y3:     dd      500
 
 section .text
-	
-;##################################################
-;########### PROGRAMME PRINCIPAL ##################
-;##################################################
 
 main:
-mov byte[count], 0
-xor     rdi,rdi
-call    XOpenDisplay	; Création de display
-mov     qword[display_name],rax	; rax=nom du display
+mov byte[triangles_count], 0
 
+; ===== INIT THE X11 WINDOW ===== ;
+; === create a display === ;
+xor rdi, rdi
+call XOpenDisplay
+mov qword[display_name], rax
+
+; === get screen name === ;
 ; display_name structure
 ; screen = DefaultScreen(display_name);
 mov     rax,qword[display_name]
 mov     eax,dword[rax+0xe0]
 mov     dword[screen],eax
 
+; === get parent of the window === ;
 mov rdi,qword[display_name]
 mov esi,dword[screen]
 call XRootWindow
 mov rbx,rax
 
+; === create a window === ;
 mov rdi,qword[display_name]
 mov rsi,rbx
-mov rdx,10
-mov rcx,10
-mov r8,400	; largeur
-mov r9,400	; hauteur
-push 0xFFFFFF	; background  0xRRGGBB
-push 0x00FF00
+mov rdx,10      ; window position
+mov rcx,10      ; window position
+mov r8,400      ; width
+mov r9,400	    ; height
+push 0xFFFFFF   ; border
+push 0x00FF00   ; background
 push 1
 call XCreateSimpleWindow
-mov qword[window],rax
+mov qword[window], rax
 
-mov rdi,qword[display_name]
-mov rsi,qword[window]
-mov rdx,131077 ;131072
+; === setup events === ;
+mov rdi, qword[display_name]
+mov rsi, qword[window]
+mov rdx, StructureNotifyMask
 call XSelectInput
 
+; === map the window === ;
 mov rdi,qword[display_name]
 mov rsi,qword[window]
 call XMapWindow
 
+; === create graphics context for the window === ;
 mov rsi,qword[window]
 mov rdx,0
 mov rcx,0
 call XCreateGC
 mov qword[gc],rax
 
+; === set drawing color === ;
 mov rdi,qword[display_name]
 mov rsi,qword[gc]
-mov rdx,0x000000	; Couleur du crayon
+mov rdx,0x000000
 call XSetForeground
 
-boucle: ; boucle de gestion des évènements
+; ===== HANDLE EVENTS ===== ;
+handle_events:
+; === get event === ;
 mov rdi,qword[display_name]
 mov rsi,event
 call XNextEvent
 
-cmp dword[event],ConfigureNotify ; à l'apparition de la fenêtre
-je dessin							; on saute au label 'dessin'
+; === draw triangles if program start === ;
+cmp dword[event],ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
+je draw_triangle
 
-cmp dword[event],KeyPress			; Si on appuie sur une touche
-je closeDisplay						; on saute au label 'closeDisplay' qui ferme la fenêtre
-jmp boucle
+; === stop program if a key is pressed === ;
+cmp dword[event],KeyPress           ; KeyPress = event when any key is pressed
+je closeDisplay
+jmp handle_events
 
-;#########################################
-;#		DEBUT DE LA ZONE DE DESSIN		 #
-;#########################################
-dessin:
-
-;couleur de la ligne 1
+draw_triangle:
+; === set draw color === ;
 mov rdi,qword[display_name]
 mov rsi,qword[gc]
-mov edx,0x000000	; Couleur du crayon ; noir
+mov edx,0x000000
 call XSetForeground
-; dessin de la ligne 1
+
+; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
+; === vertex 1 === ;
 mov r8, 0
 RDRAND r8
 mov rax, r8
@@ -150,8 +158,28 @@ mov rbx, 400
 xor rdx, rdx
 div rbx
 mov r8, rdx
+mov [y1], r8
+
+; === vertex 2 === ;
+mov r8, 0
+RDRAND r8
+mov rax, r8
+mov rbx, 400
+xor rdx, rdx
+div rbx
+mov r8, rdx
 mov [x2], r8
 
+mov r8, 0
+RDRAND r8
+mov rax, r8
+mov rbx, 400
+xor rdx, rdx
+div rbx
+mov r8, rdx
+mov [y2], r8
+
+; === vertex 3 === ;
 mov r8, 0
 RDRAND r8
 mov rax, r8
@@ -168,67 +196,45 @@ mov rbx, 400
 xor rdx, rdx
 div rbx
 mov r8, rdx
-mov [y1], r8
-
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [y2], r8
-
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
 mov [y3], r8
 
+; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
+; === line 1 === ;
 mov rdi,qword[display_name]
 mov rsi,qword[window]
 mov rdx,qword[gc]
-mov ecx,dword[x1]	; coordonnée source en x
-mov r8d,dword[y1]	; coordonnée source en y
-mov r9d,dword[x2]	; coordonnée destination en x
-push qword[y2]		; coordonnée destination en y
+mov ecx,dword[x1]	
+mov r8d,dword[y1]
+mov r9d,dword[x2]
+push qword[y2]
 call XDrawLine
 
-; coordonnées de la ligne 1 (noire)
-; dessin de la ligne 1
+; === line 2 === ;
 mov rdi,qword[display_name]
 mov rsi,qword[window]
 mov rdx,qword[gc]
-mov ecx,dword[x2]	; coordonnée source en x
-mov r8d,dword[y2]	; coordonnée source en y
-mov r9d,dword[x3]	; coordonnée destination en x
-push qword[y3]		; coordonnée destination en y
+mov ecx,dword[x2]	
+mov r8d,dword[y2]
+mov r9d,dword[x3]
+push qword[y3]
 call XDrawLine
 
-; coordonnées de la ligne 1 (noire)
-; dessin de la ligne 1
+; === line 3 === ;
 mov rdi,qword[display_name]
 mov rsi,qword[window]
 mov rdx,qword[gc]
-mov ecx,dword[x3]	; coordonnée source en x
-mov r8d,dword[y3]	; coordonnée source en y
-mov r9d,dword[x1]	; coordonnée destination en x
-push qword[y1]		; coordonnée destination en y
+mov ecx,dword[x3]	
+mov r8d,dword[y3]
+mov r9d,dword[x1]
+push qword[y1]
 call XDrawLine
 
-inc byte[count]
-cmp byte[count], NBLOOP
-jne dessin
+; ===== LOOP CHECK TO MAKE THE RIGHT NUMBER OF TRIANGLES ===== ;
+inc byte[triangles_count]
+cmp byte[triangles_count], NB_TRIANGLES
+jne draw_triangle
 
-; ############################
-; # FIN DE LA ZONE DE DESSIN #
-; ############################
-jmp flush
-pop rbp
-flush:
+; ===== END OF THE PROGRAM ===== ;
 mov rdi,qword[display_name]
 call XFlush
 mov rax,34
@@ -239,5 +245,6 @@ closeDisplay:
     mov     rdi,rax
     call    XCloseDisplay
     xor	    rdi,rdi
+    pop rbp
     call    exit
 	
