@@ -18,6 +18,9 @@ extern XNextEvent
 extern printf
 extern exit
 
+; internal functions
+extern getRandomNumber
+
 %define	StructureNotifyMask	131077
 %define KeyPressMask		1
 %define ButtonPressMask		4
@@ -38,7 +41,7 @@ global main
 section .data
 triangles_count: db    0
 event:		times	24 dq 0
-check: db "Check %hhu", 10, 0
+check: db "Check", 10, 0
 
 section .bss
 display_name:	resq	1
@@ -140,9 +143,7 @@ draw:
     call XSetForeground
 
     mov rdi, check
-    movzx rsi, byte[triangles_count]
-    mov rax, 0
-    call printf
+    call getRandomNumber
 
     ; === set draw color === ;
     mov rdi,qword[display_name]
@@ -159,7 +160,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[x1], r8d
+    mov qword[x1], r8
 
     mov r8, 0
     RDRAND r8
@@ -168,7 +169,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[y1], r8d
+    mov qword[y1], r8
 
     ; === vertex 2 === ;
     mov r8, 0
@@ -178,7 +179,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[x2], r8d
+    mov qword[x2], r8
 
     mov r8, 0
     RDRAND r8
@@ -187,7 +188,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[y2], r8d
+    mov qword[y2], r8
 
     ; === vertex 3 === ;
     mov r8, 0
@@ -197,7 +198,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[x3], r8d
+    mov qword[x3], r8
 
     mov r8, 0
     RDRAND r8
@@ -206,7 +207,7 @@ draw:
     xor rdx, rdx
     div rbx
     mov r8, rdx
-    mov dword[y3], r8d
+    mov qword[y3], r8
 
     ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
     ; === line 1 === ;

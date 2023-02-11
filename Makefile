@@ -6,13 +6,20 @@ EXECUTABLE := cerise
 INDEXASM := index.asm
 INDEXO := index.o
 
-OBJECTS := $(INDEXO)
+RANDOMNUMBERASM := randomNumber.asm
+RANDOMNUMBERO := randomNumber.o
+
+OBJECTS := $(INDEXO) $(RANDOMNUMBERO)
 
 $(EXECUTABLE): $(OBJECTS)
 	gcc $(GCCFLAGS) -o $(EXECUTABLE) $(OBJECTS) $(LIBS)
 
 $(INDEXO): $(INDEXASM)
 	nasm -felf64 -o $(INDEXO) $(INDEXASM)
+
+$(RANDOMNUMBERO): $(RANDOMNUMBERASM)
+	nasm -felf64 -o $(RANDOMNUMBERO) $(RANDOMNUMBERASM)
+
 
 clean:
 	rm *.o $(EXECUTABLE)
