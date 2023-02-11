@@ -59,6 +59,7 @@ y3:     dd      500
 section .text
 
 main:
+push rbp
 mov byte[triangles_count], 0
 
 ; ===== INIT THE X11 WINDOW ===== ;
