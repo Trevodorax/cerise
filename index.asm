@@ -244,8 +244,6 @@ draw:
     cmp byte[triangles_count], NB_TRIANGLES - 1
     jb draw
 
-    ; mov rdi, qword[display_name]
-    ; call XFlush
     jmp handle_events
 
 ; ===== END OF PROGRAM ===== ;
