@@ -35,6 +35,11 @@ extern exit
 
 global main
 
+section .data
+triangles_count: db    0
+event:		times	24 dq 0
+check: db "Check %hhu", 10, 0
+
 section .bss
 display_name:	resq	1
 screen:			resd	1
@@ -44,23 +49,19 @@ width:         	resd	1
 height:        	resd	1
 window:		resq	1
 gc:		resq	1
-triangles_count:           resb    1
+x1: resq 1
+y1: resq 1
+x2: resq 1
+y2: resq 1
+x3: resq 1
+y3: resq 1
 
-section .data
-
-event:		times	24 dq 0
-x1:	dd	500
-x2:	dd	500
-x3:     dd      500
-y1:	dd	500
-y2:	dd	500
-y3:     dd      500
 
 section .text
 
+mov byte[triangles_count], 0
 main:
 push rbp
-mov byte[triangles_count], 0
 
 ; ===== INIT THE X11 WINDOW ===== ;
 ; === create a display === ;
@@ -112,140 +113,146 @@ mov rcx,0
 call XCreateGC
 mov qword[gc],rax
 
-; === set drawing color === ;
-mov rdi,qword[display_name]
-mov rsi,qword[gc]
-mov rdx,0x000000
-call XSetForeground
-
 ; ===== HANDLE EVENTS ===== ;
 handle_events:
-; === get event === ;
-mov rdi,qword[display_name]
-mov rsi,event
-call XNextEvent
+    ; === get event === ;
+    mov rdi,qword[display_name]
+    mov rsi,event
+    call XNextEvent
 
-; === draw triangles if program start === ;
-cmp dword[event],ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
-je draw_triangle
+    ; === draw triangles if program start === ;
+    cmp dword[event],ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
+    je draw
 
-; === stop program if a key is pressed === ;
-cmp dword[event],KeyPress           ; KeyPress = event when any key is pressed
-je closeDisplay
-jmp handle_events
+    ; === stop program if a key is pressed === ;
+    cmp dword[event],KeyPress           ; KeyPress = event when any key is pressed
+    je closeDisplay
 
-draw_triangle:
-; === set draw color === ;
-mov rdi,qword[display_name]
-mov rsi,qword[gc]
-mov edx,0x000000
-call XSetForeground
+    jmp handle_events
 
-; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
-; === vertex 1 === ;
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [x1], r8
 
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [y1], r8
 
-; === vertex 2 === ;
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [x2], r8
+draw:
+    ; === set drawing color === ;
+    mov rdi,qword[display_name]
+    mov rsi,qword[gc]
+    mov rdx,0x000000
+    call XSetForeground
 
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [y2], r8
+    mov rdi, check
+    movzx rsi, byte[triangles_count]
+    mov rax, 0
+    call printf
 
-; === vertex 3 === ;
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [x3], r8
+    ; === set draw color === ;
+    mov rdi,qword[display_name]
+    mov rsi,qword[gc]
+    mov edx,0x000000
+    call XSetForeground
 
-mov r8, 0
-RDRAND r8
-mov rax, r8
-mov rbx, 400
-xor rdx, rdx
-div rbx
-mov r8, rdx
-mov [y3], r8
+    ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
+    ; === vertex 1 === ;
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[x1], r8d
 
-; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
-; === line 1 === ;
-mov rdi,qword[display_name]
-mov rsi,qword[window]
-mov rdx,qword[gc]
-mov ecx,dword[x1]	
-mov r8d,dword[y1]
-mov r9d,dword[x2]
-push qword[y2]
-call XDrawLine
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[y1], r8d
 
-; === line 2 === ;
-mov rdi,qword[display_name]
-mov rsi,qword[window]
-mov rdx,qword[gc]
-mov ecx,dword[x2]	
-mov r8d,dword[y2]
-mov r9d,dword[x3]
-push qword[y3]
-call XDrawLine
+    ; === vertex 2 === ;
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[x2], r8d
 
-; === line 3 === ;
-mov rdi,qword[display_name]
-mov rsi,qword[window]
-mov rdx,qword[gc]
-mov ecx,dword[x3]	
-mov r8d,dword[y3]
-mov r9d,dword[x1]
-push qword[y1]
-call XDrawLine
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[y2], r8d
 
-; ===== LOOP CHECK TO MAKE THE RIGHT NUMBER OF TRIANGLES ===== ;
-inc byte[triangles_count]
-cmp byte[triangles_count], NB_TRIANGLES
-jne draw_triangle
+    ; === vertex 3 === ;
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[x3], r8d
 
-; ===== END OF THE PROGRAM ===== ;
-mov rdi,qword[display_name]
-call XFlush
-mov rax,34
-syscall
+    mov r8, 0
+    RDRAND r8
+    mov rax, r8
+    mov rbx, 400
+    xor rdx, rdx
+    div rbx
+    mov r8, rdx
+    mov dword[y3], r8d
 
+    ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
+    ; === line 1 === ;
+    mov rdi,qword[display_name]
+    mov rsi,qword[window]
+    mov rdx,qword[gc]
+    mov rcx,qword[x1]	
+    mov r8,qword[y1]
+    mov r9,qword[x2]
+    push qword[y2]
+    call XDrawLine
+
+    ; === line 2 === ;
+    mov rdi,qword[display_name]
+    mov rsi,qword[window]
+    mov rdx,qword[gc]
+    mov rcx,qword[x2]	
+    mov r8,qword[y2]
+    mov r9,qword[x3]
+    push qword[y3]
+    call XDrawLine
+
+    ; === line 3 === ;
+    mov rdi,qword[display_name]
+    mov rsi,qword[window]
+    mov rdx,qword[gc]
+    mov rcx,qword[x3]	
+    mov r8,qword[y3]
+    mov r9,qword[x1]
+    push qword[y1]
+    call XDrawLine
+
+    ; ===== triangles loop check ===== ;
+    inc byte[triangles_count]
+    cmp byte[triangles_count], NB_TRIANGLES - 1
+    jb draw
+
+    ; mov rdi, qword[display_name]
+    ; call XFlush
+    jmp handle_events
+
+; ===== END OF PROGRAM ===== ;
 closeDisplay:
     mov     rax,qword[display_name]
     mov     rdi,rax
     call    XCloseDisplay
     xor	    rdi,rdi
-    pop rbp
+    pop     rbp
     call    exit
-	
