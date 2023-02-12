@@ -21,6 +21,7 @@ extern exit
 ; internal functions
 extern initX11
 extern getRandomNumber
+extern getDeterminant
 
 %define	StructureNotifyMask	131077
 %define KeyPressMask		1
@@ -44,6 +45,7 @@ section .data
 triangles_count: db    0
 event:		times	24 dq 0
 check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
+check: db "Check", 10, 0
 
 section .bss
 display_name:	resq	1
@@ -184,6 +186,16 @@ draw:
         ; mov rax, 0
         ; call printf
 
+        ; ===== get the determinant of two vectors ===== ;
+        mov edi, dword[x1]
+        mov esi, dword[y1]
+        mov edx, dword[x2]
+        mov ecx, dword[y2]
+        mov r8d, dword[x3]
+        mov r9d, dword[y3]
+        mov r10, check_points_str
+        call getDeterminant
+
         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === line 1 === ;
         mov rdi, qword[display_name]
@@ -231,8 +243,6 @@ draw:
 ; ================================ ;
 
 jmp handle_events
-
-
 
 ; ===== END OF PROGRAM ===== ;
 closeDisplay:
