@@ -153,61 +153,31 @@ draw:
 
     ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
     ; === vertex 1 === ;
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[x1], r8
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[x1], rax
 
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[y1], r8
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[y1], rax
 
     ; === vertex 2 === ;
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[x2], r8
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[x2], rax
 
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[y2], r8
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[y2], rax
 
     ; === vertex 3 === ;
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[x3], r8
-
-    mov r8, 0
-    RDRAND r8
-    mov rax, r8
-    mov rbx, 400
-    xor rdx, rdx
-    div rbx
-    mov r8, rdx
-    mov qword[y3], r8
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[x3], rax
+    
+    mov rdi, 400
+    call getRandomNumber
+    mov qword[y3], rax
 
     ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
     ; === line 1 === ;
