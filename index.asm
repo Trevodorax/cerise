@@ -43,7 +43,7 @@ global main
 section .data
 triangles_count: db    0
 event:		times	24 dq 0
-check_points_str: db "x1: %lu", 10, "y1: %lu", 10, "x2: %lu", 10, "y2: %lu", 10, "x3: %lu", 10, "y3: %lu", 10, 10, 0
+check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
 
 section .bss
 display_name:	resq	1
@@ -54,16 +54,15 @@ width:         	resd	1
 height:        	resd	1
 window:		resq	1
 gc:		resq	1
-x1: resq 1
-y1: resq 1
-x2: resq 1
-y2: resq 1
-x3: resq 1
-y3: resq 1
+x1: resd 1
+y1: resd 1
+x2: resd 1
+y2: resd 1
+x3: resd 1
+y3: resd 1
 
 section .text
 
-mov byte[triangles_count], 0
 main:
 push rbp
 
@@ -150,71 +149,77 @@ draw:
         ; === vertex 1 === ;
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[x1], rax
+        mov dword[x1], eax
 
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[y1], rax
+        mov dword[y1], eax
 
         ; === vertex 2 === ;
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[x2], rax
+        mov dword[x2], eax
 
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[y2], rax
+        mov dword[y2], eax
 
         ; === vertex 3 === ;
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[x3], rax
+        mov dword[x3], eax
         
         mov rdi, WINDOW_SIZE
         call getRandomNumber
-        mov qword[y3], rax
+        mov dword[y3], eax
 
         ; === print the points === ;
         ; mov rdi, check_points_str
-        ; mov rsi, qword[x1]
-        ; mov rdx, qword[y1]
-        ; mov rcx, qword[x2]
-        ; mov r8, qword[y2]
-        ; mov r9, qword[x3]
-        ; push qword[y3]
+        ; mov esi, dword[x1]
+        ; mov edx, dword[y1]
+        ; mov ecx, dword[x2]
+        ; mov r8d, dword[y2]
+        ; mov r9d, dword[x3]
+        ; push dword[y3]
         ; mov rax, 0
         ; call printf
 
         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === line 1 === ;
-        mov rdi,qword[display_name]
-        mov rsi,qword[window]
-        mov rdx,qword[gc]
-        mov rcx,qword[x1]	
-        mov r8,qword[y1]
-        mov r9,qword[x2]
-        push qword[y2]
+        mov rdi, qword[display_name]
+        mov rsi, qword[window]
+        mov rdx, qword[gc]
+        mov ecx, dword[x1]	
+        mov r8d, dword[y1]
+        mov r9d, dword[x2]
+        mov ebx, dword[y2]
+        push rbx
         call XDrawLine
+        pop rbx
 
         ; === line 2 === ;
-        mov rdi,qword[display_name]
-        mov rsi,qword[window]
-        mov rdx,qword[gc]
-        mov rcx,qword[x2]	
-        mov r8,qword[y2]
-        mov r9,qword[x3]
-        push qword[y3]
+        mov rdi, qword[display_name]
+        mov rsi, qword[window]
+        mov rdx, qword[gc]
+        mov ecx, dword[x2]	
+        mov r8d, dword[y2]
+        mov r9d, dword[x3]
+        mov ebx, dword[y3]
+        push rbx
         call XDrawLine
+        pop rbx
 
         ; === line 3 === ;
-        mov rdi,qword[display_name]
-        mov rsi,qword[window]
-        mov rdx,qword[gc]
-        mov rcx,qword[x3]	
-        mov r8,qword[y3]
-        mov r9,qword[x1]
-        push qword[y1]
+        mov rdi, qword[display_name]
+        mov rsi, qword[window]
+        mov rdx, qword[gc]
+        mov ecx, dword[x3]	
+        mov r8d, dword[y3]
+        mov r9d, dword[x1]
+        mov ebx, dword[y1]
+        push rbx
         call XDrawLine
+        pop rbx
 
         ; ===== triangles loop check ===== ;
         inc byte[triangles_count]
