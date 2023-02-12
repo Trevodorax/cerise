@@ -45,7 +45,7 @@ section .data
 triangles_count: db    0
 event:		times	24 dq 0
 check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
-check: db "%d", 10, 0
+check: db "%hhu", 10, 0
 
 section .bss
 display_name:	resq	1
@@ -63,6 +63,7 @@ y2: resd 1
 x3: resd 1
 y3: resd 1
 determinant: resd 1
+isClockwise: resb 1
 
 section .text
 
@@ -214,14 +215,32 @@ draw:
         pop rbx
 
         ; ===== CHECK IF TRIANGLE IS CLOCKWISE ===== ;
-        ; mov edi, dword[x1]
-        ; mov esi, dword[y1]
-        ; mov edx, dword[x2]
-        ; mov ecx, dword[y2]
-        ; mov r8d, dword[x3]
-        ; mov r9d, dword[y3]
-        ; mov r10, check
-        ; call getDeterminant        
+        clockwise_check:
+            mov edi, dword[x1]
+            mov esi, dword[y1]
+            mov edx, dword[x2]
+            mov ecx, dword[y2]
+            mov r8d, dword[x3]
+            mov r9d, dword[y3]
+            call getDeterminant
+            mov dword[determinant], eax
+
+            cmp rax, 0
+            jl clockwise
+
+            counterclockwise:
+                mov byte[isClockwise], 0
+                jmp point_side_check
+
+            clockwise:
+                mov byte[isClockwise], 1
+        
+        ; ===== CHECK IF POINT IS ON THE RIGHT SIDE OF EACH SIDE ===== ;
+        point_side_check:
+            mov rdi, check
+            movzx rsi, byte[isClockwise]
+            mov rax, 0
+            call printf
 
         ; ===== triangles loop check ===== ;
         inc byte[triangles_count]
