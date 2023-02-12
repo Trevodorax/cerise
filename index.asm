@@ -17,6 +17,7 @@ extern XNextEvent
 ; external functions from stdio library (ld-linux-x86-64.so.2)
 extern printf
 extern exit
+extern sleep
 
 ; internal functions
 extern initX11
@@ -47,6 +48,7 @@ event:		times	24 dq 0
 check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
 check: db "%hhu", 10, 0
 point_in_triangle_str: db "Point in triangle", 10, 0
+isDrawDone: db 0
 
 section .bss
 display_name:	resq	1
@@ -74,8 +76,13 @@ section .text
 main:
 push rbp
 
-mov dword[currentX], 250
-mov dword[currentY], 250
+; ===== TEST POINTS HERE ===== ;
+; mov dword[x1], 50
+; mov dword[y1], 100
+; mov dword[x2], 100
+; mov dword[y2], 200
+; mov dword[x3], 300
+; mov dword[y3], 250
 
 x11_init:
     ; ===== INIT THE X11 WINDOW ===== ;
@@ -135,8 +142,8 @@ handle_events:
     mov rsi, event
     call XNextEvent
 
-    ; === draw if program just started (or if the window is moved) === ;
-    cmp dword[event], ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
+    ; === draw if drawing hasn't been done yet === ;
+    cmp byte[isDrawDone], 0    
     je draw
 
     ; === stop program if a key is pressed === ;
@@ -149,6 +156,7 @@ handle_events:
 ; ====== DRAWING ZONE START ====== ;
 ; ================================ ;
 draw:
+    mov byte[isDrawDone], 1
     triangles_loop:
         ; === set draw color === ;
         mov rdi,qword[display_name]
@@ -350,7 +358,7 @@ draw:
         ; ===== triangles loop check ===== ;
         triangle_loop_check:
             inc byte[triangles_count]
-            cmp byte[triangles_count], NB_TRIANGLES - 1
+            cmp byte[triangles_count], NB_TRIANGLES
             jb triangles_loop
 
 ; ================================ ;
