@@ -124,7 +124,7 @@ handle_events:
     mov rsi, event
     call XNextEvent
 
-    ; === draw triangles if program start === ;
+    ; === draw if program just started (or if the window is moved) === ;
     cmp dword[event], ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
     je draw
 
@@ -134,89 +134,88 @@ handle_events:
 
     jmp handle_events
 
-
-
+; ================================ ;
+; ====== DRAWING ZONE START ====== ;
+; ================================ ;
 draw:
-    ; === set drawing color === ;
-    mov rdi,qword[display_name]
-    mov rsi,qword[gc]
-    mov rdx,0x000000
-    call XSetForeground
+    triangles_loop:
+        ; === set draw color === ;
+        mov rdi,qword[display_name]
+        mov rsi,qword[gc]
+        mov edx,0x000000
+        call XSetForeground
 
-    mov rdi, check
-    call getRandomNumber
+        ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
+        ; === vertex 1 === ;
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[x1], rax
 
-    ; === set draw color === ;
-    mov rdi,qword[display_name]
-    mov rsi,qword[gc]
-    mov edx,0x000000
-    call XSetForeground
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[y1], rax
 
-    ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
-    ; === vertex 1 === ;
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[x1], rax
+        ; === vertex 2 === ;
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[x2], rax
 
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[y1], rax
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[y2], rax
 
-    ; === vertex 2 === ;
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[x2], rax
+        ; === vertex 3 === ;
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[x3], rax
+        
+        mov rdi, WINDOW_SIZE
+        call getRandomNumber
+        mov qword[y3], rax
 
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[y2], rax
+        ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
+        ; === line 1 === ;
+        mov rdi,qword[display_name]
+        mov rsi,qword[window]
+        mov rdx,qword[gc]
+        mov rcx,qword[x1]	
+        mov r8,qword[y1]
+        mov r9,qword[x2]
+        push qword[y2]
+        call XDrawLine
 
-    ; === vertex 3 === ;
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[x3], rax
-    
-    mov rdi, WINDOW_SIZE
-    call getRandomNumber
-    mov qword[y3], rax
+        ; === line 2 === ;
+        mov rdi,qword[display_name]
+        mov rsi,qword[window]
+        mov rdx,qword[gc]
+        mov rcx,qword[x2]	
+        mov r8,qword[y2]
+        mov r9,qword[x3]
+        push qword[y3]
+        call XDrawLine
 
-    ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
-    ; === line 1 === ;
-    mov rdi,qword[display_name]
-    mov rsi,qword[window]
-    mov rdx,qword[gc]
-    mov rcx,qword[x1]	
-    mov r8,qword[y1]
-    mov r9,qword[x2]
-    push qword[y2]
-    call XDrawLine
+        ; === line 3 === ;
+        mov rdi,qword[display_name]
+        mov rsi,qword[window]
+        mov rdx,qword[gc]
+        mov rcx,qword[x3]	
+        mov r8,qword[y3]
+        mov r9,qword[x1]
+        push qword[y1]
+        call XDrawLine
 
-    ; === line 2 === ;
-    mov rdi,qword[display_name]
-    mov rsi,qword[window]
-    mov rdx,qword[gc]
-    mov rcx,qword[x2]	
-    mov r8,qword[y2]
-    mov r9,qword[x3]
-    push qword[y3]
-    call XDrawLine
+        ; ===== triangles loop check ===== ;
+        inc byte[triangles_count]
+        cmp byte[triangles_count], NB_TRIANGLES - 1
+        jb triangles_loop
 
-    ; === line 3 === ;
-    mov rdi,qword[display_name]
-    mov rsi,qword[window]
-    mov rdx,qword[gc]
-    mov rcx,qword[x3]	
-    mov r8,qword[y3]
-    mov r9,qword[x1]
-    push qword[y1]
-    call XDrawLine
+; ================================ ;
+; ======= DRAWING ZONE END ======= ;
+; ================================ ;
 
-    ; ===== triangles loop check ===== ;
-    inc byte[triangles_count]
-    cmp byte[triangles_count], NB_TRIANGLES - 1
-    jb draw
+jmp handle_events
 
-    jmp handle_events
+
 
 ; ===== END OF PROGRAM ===== ;
 closeDisplay:
