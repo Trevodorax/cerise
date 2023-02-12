@@ -14,11 +14,12 @@ extern XDrawPoint
 extern XFillArc
 extern XNextEvent
 
-; external functions from stdio library (ld-linux-x86-64.so.2)    
+; external functions from stdio library (ld-linux-x86-64.so.2)
 extern printf
 extern exit
 
 ; internal functions
+extern initX11
 extern getRandomNumber
 
 %define	StructureNotifyMask	131077
@@ -42,7 +43,7 @@ global main
 section .data
 triangles_count: db    0
 event:		times	24 dq 0
-check: db "Check", 10, 0
+check_points_str: db "x1: %lu", 10, "y1: %lu", 10, "x2: %lu", 10, "y2: %lu", 10, "x3: %lu", 10, "y3: %lu", 10, 10, 0
 
 section .bss
 display_name:	resq	1
@@ -60,62 +61,62 @@ y2: resq 1
 x3: resq 1
 y3: resq 1
 
-
 section .text
 
 mov byte[triangles_count], 0
 main:
 push rbp
 
-; ===== INIT THE X11 WINDOW ===== ;
-; === create a display === ;
-xor rdi, rdi
-call XOpenDisplay
-mov qword[display_name], rax
+x11_init:
+    ; ===== INIT THE X11 WINDOW ===== ;
+    ; === create a display === ;
+    xor rdi, rdi
+    call XOpenDisplay
+    mov qword[display_name], rax
 
-; === get screen name === ;
-; display_name structure
-; screen = DefaultScreen(display_name);
-mov     rax,qword[display_name]
-mov     eax,dword[rax+0xe0]
-mov     dword[screen],eax
+    ; === get screen name === ;
+    ; display_name structure
+    ; screen = DefaultScreen(display_name);
+    mov     rax,qword[display_name]
+    mov     eax,dword[rax+0xe0]
+    mov     dword[screen],eax
 
-; === get parent of the window === ;
-mov rdi, qword[display_name]
-mov esi, dword[screen]
-call XRootWindow
-mov rbx, rax
+    ; === get parent of the window === ;
+    mov rdi, qword[display_name]
+    mov esi, dword[screen]
+    call XRootWindow
+    mov rbx, rax
 
-; === create a window === ;
-mov rdi, qword[display_name]
-mov rsi, rbx
-mov rdx, 10      ; window position
-mov rcx, 10      ; window position
-mov r8, WINDOW_SIZE      ; width
-mov r9, WINDOW_SIZE	    ; height
-push 0xFFFFFF   ; border
-push 0x00FF00   ; background
-push 1
-call XCreateSimpleWindow
-mov qword[window], rax
+    ; === create a window === ;
+    mov rdi, qword[display_name]
+    mov rsi, rbx
+    mov rdx, 10      ; window position
+    mov rcx, 10      ; window position
+    mov r8, WINDOW_SIZE      ; width
+    mov r9, WINDOW_SIZE	    ; height
+    push 0xFFFFFF   ; border
+    push 0x00FF00   ; background
+    push 1
+    call XCreateSimpleWindow
+    mov qword[window], rax
 
-; === setup events === ;
-mov rdi, qword[display_name]
-mov rsi, qword[window]
-mov rdx, StructureNotifyMask
-call XSelectInput
+    ; === setup events === ;
+    mov rdi, qword[display_name]
+    mov rsi, qword[window]
+    mov rdx, StructureNotifyMask
+    call XSelectInput
 
-; === map the window === ;
-mov rdi, qword[display_name]
-mov rsi, qword[window]
-call XMapWindow
+    ; === map the window === ;
+    mov rdi, qword[display_name]
+    mov rsi, qword[window]
+    call XMapWindow
 
-; === create graphics context for the window === ;
-mov rsi, qword[window]
-mov rdx, 0
-mov rcx, 0
-call XCreateGC
-mov qword[gc], rax
+    ; === create graphics context for the window === ;
+    mov rsi, qword[window]
+    mov rdx, 0
+    mov rcx, 0
+    call XCreateGC
+    mov qword[gc], rax
 
 ; ===== HANDLE EVENTS ===== ;
 handle_events:
@@ -172,6 +173,17 @@ draw:
         mov rdi, WINDOW_SIZE
         call getRandomNumber
         mov qword[y3], rax
+
+        ; === print the points === ;
+        ; mov rdi, check_points_str
+        ; mov rsi, qword[x1]
+        ; mov rdx, qword[y1]
+        ; mov rcx, qword[x2]
+        ; mov r8, qword[y2]
+        ; mov r9, qword[x3]
+        ; push qword[y3]
+        ; mov rax, 0
+        ; call printf
 
         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === line 1 === ;
