@@ -35,6 +35,7 @@ extern getRandomNumber
 %define WORD	2
 %define BYTE	1
 %define NB_TRIANGLES  3
+%define WINDOW_SIZE 500
 
 global main
 
@@ -80,18 +81,18 @@ mov     eax,dword[rax+0xe0]
 mov     dword[screen],eax
 
 ; === get parent of the window === ;
-mov rdi,qword[display_name]
-mov esi,dword[screen]
+mov rdi, qword[display_name]
+mov esi, dword[screen]
 call XRootWindow
-mov rbx,rax
+mov rbx, rax
 
 ; === create a window === ;
-mov rdi,qword[display_name]
-mov rsi,rbx
-mov rdx,10      ; window position
-mov rcx,10      ; window position
-mov r8,400      ; width
-mov r9,400	    ; height
+mov rdi, qword[display_name]
+mov rsi, rbx
+mov rdx, 10      ; window position
+mov rcx, 10      ; window position
+mov r8, WINDOW_SIZE      ; width
+mov r9, WINDOW_SIZE	    ; height
 push 0xFFFFFF   ; border
 push 0x00FF00   ; background
 push 1
@@ -105,30 +106,30 @@ mov rdx, StructureNotifyMask
 call XSelectInput
 
 ; === map the window === ;
-mov rdi,qword[display_name]
-mov rsi,qword[window]
+mov rdi, qword[display_name]
+mov rsi, qword[window]
 call XMapWindow
 
 ; === create graphics context for the window === ;
-mov rsi,qword[window]
-mov rdx,0
-mov rcx,0
+mov rsi, qword[window]
+mov rdx, 0
+mov rcx, 0
 call XCreateGC
-mov qword[gc],rax
+mov qword[gc], rax
 
 ; ===== HANDLE EVENTS ===== ;
 handle_events:
     ; === get event === ;
-    mov rdi,qword[display_name]
-    mov rsi,event
+    mov rdi, qword[display_name]
+    mov rsi, event
     call XNextEvent
 
     ; === draw triangles if program start === ;
-    cmp dword[event],ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
+    cmp dword[event], ConfigureNotify    ; ConfigureNotify = event at the beginning of the program
     je draw
 
     ; === stop program if a key is pressed === ;
-    cmp dword[event],KeyPress           ; KeyPress = event when any key is pressed
+    cmp dword[event], KeyPress           ; KeyPress = event when any key is pressed
     je closeDisplay
 
     jmp handle_events
@@ -153,29 +154,29 @@ draw:
 
     ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
     ; === vertex 1 === ;
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[x1], rax
 
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[y1], rax
 
     ; === vertex 2 === ;
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[x2], rax
 
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[y2], rax
 
     ; === vertex 3 === ;
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[x3], rax
     
-    mov rdi, 400
+    mov rdi, WINDOW_SIZE
     call getRandomNumber
     mov qword[y3], rax
 
