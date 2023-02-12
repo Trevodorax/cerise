@@ -45,7 +45,7 @@ section .data
 triangles_count: db    0
 event:		times	24 dq 0
 check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
-check: db "Check", 10, 0
+check: db "%d", 10, 0
 
 section .bss
 display_name:	resq	1
@@ -62,6 +62,7 @@ x2: resd 1
 y2: resd 1
 x3: resd 1
 y3: resd 1
+determinant: resd 1
 
 section .text
 
@@ -175,27 +176,6 @@ draw:
         call getRandomNumber
         mov dword[y3], eax
 
-        ; === print the points === ;
-        ; mov rdi, check_points_str
-        ; mov esi, dword[x1]
-        ; mov edx, dword[y1]
-        ; mov ecx, dword[x2]
-        ; mov r8d, dword[y2]
-        ; mov r9d, dword[x3]
-        ; push dword[y3]
-        ; mov rax, 0
-        ; call printf
-
-        ; ===== get the determinant of two vectors ===== ;
-        mov edi, dword[x1]
-        mov esi, dword[y1]
-        mov edx, dword[x2]
-        mov ecx, dword[y2]
-        mov r8d, dword[x3]
-        mov r9d, dword[y3]
-        mov r10, check_points_str
-        call getDeterminant
-
         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === line 1 === ;
         mov rdi, qword[display_name]
@@ -232,6 +212,16 @@ draw:
         push rbx
         call XDrawLine
         pop rbx
+
+        ; ===== CHECK IF TRIANGLE IS CLOCKWISE ===== ;
+        ; mov edi, dword[x1]
+        ; mov esi, dword[y1]
+        ; mov edx, dword[x2]
+        ; mov ecx, dword[y2]
+        ; mov r8d, dword[x3]
+        ; mov r9d, dword[y3]
+        ; mov r10, check
+        ; call getDeterminant        
 
         ; ===== triangles loop check ===== ;
         inc byte[triangles_count]
