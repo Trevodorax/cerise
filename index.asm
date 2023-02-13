@@ -23,6 +23,8 @@ extern sleep
 extern initX11
 extern getRandomNumber
 extern getDeterminant
+extern min
+extern max
 
 %define	StructureNotifyMask	131077
 %define KeyPressMask		1
@@ -37,18 +39,19 @@ extern getDeterminant
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NB_TRIANGLES  5
+%define NB_TRIANGLES  2
 %define WINDOW_SIZE 500
 
 global main
 
 section .data
 triangles_count: db    0
-event:		times	24 dq 0
+event:		times	100 dq 0
 check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
-check: db "%hhu", 10, 0
+check: db "%d ", 10, 0
 point_in_triangle_str: db "Point in triangle", 10, 0
 isDrawDone: db 0
+poney: db "poney", 10, 0
 
 
 section .bss
@@ -72,13 +75,17 @@ determinant: resd 1
 isClockwise: resb 1
 isRight: resb 1
 fillColor: resd 1
+minX: resd 1
+minY: resd 1
+maxX: resd 1
+maxY: resd 1
 
 section .text
 
 main:
 push rbp
 
-; ===== TEST POINTS HERE ===== ;
+; ===== TEST VALUES HERE ===== ;
 ; mov dword[x1], 50
 ; mov dword[y1], 100
 ; mov dword[x2], 100
@@ -86,10 +93,16 @@ push rbp
 ; mov dword[x3], 300
 ; mov dword[y3], 250
 
+mov dword[minX], 0
+mov dword[minY], 0
+mov dword[maxX], WINDOW_SIZE
+mov dword[maxY], WINDOW_SIZE
+
 x11_init:
     ; ===== INIT THE X11 WINDOW ===== ;
     ; === create a display === ;
     xor rdi, rdi
+    mov rax, 0
     call XOpenDisplay
     mov qword[display_name], rax
 
@@ -103,6 +116,7 @@ x11_init:
     ; === get parent of the window === ;
     mov rdi, qword[display_name]
     mov esi, dword[screen]
+    mov rax, 0
     call XRootWindow
     mov rbx, rax
 
@@ -116,6 +130,7 @@ x11_init:
     push 0xFFFFFF   ; border
     push 0x00FF00   ; background
     push 1
+    mov rax, 0
     call XCreateSimpleWindow
     mov qword[window], rax
 
@@ -123,17 +138,20 @@ x11_init:
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rdx, StructureNotifyMask
+    mov rax, 0
     call XSelectInput
 
     ; === map the window === ;
     mov rdi, qword[display_name]
     mov rsi, qword[window]
+    mov rax, 0
     call XMapWindow
 
     ; === create graphics context for the window === ;
     mov rsi, qword[window]
     mov rdx, 0
     mov rcx, 0
+    mov rax, 0
     call XCreateGC
     mov qword[gc], rax
 
@@ -142,6 +160,7 @@ handle_events:
     ; === get event === ;
     mov rdi, qword[display_name]
     mov rsi, event
+    mov rax, 0
     call XNextEvent
 
     ; === draw if drawing hasn't been done yet === ;
@@ -163,32 +182,254 @@ draw:
         ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
         ; === vertex 1 === ;
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[x1], eax
 
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[y1], eax
 
         ; === vertex 2 === ;
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[x2], eax
 
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[y2], eax
 
         ; === vertex 3 === ;
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[x3], eax
         
         mov rdi, WINDOW_SIZE
+        mov rax, 0
         call getRandomNumber
         mov dword[y3], eax
 
-        ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
+        ; ===== CHECK IF TRIANGLE IS CLOCKWISE ===== ;
+        clockwise_check:
+            mov edi, dword[x1]
+            mov esi, dword[y1]
+            mov edx, dword[x2]
+            mov ecx, dword[y2]
+            mov r8d, dword[x3]
+            mov r9d, dword[y3]
+            call getDeterminant
+            mov dword[determinant], eax
+
+            cmp rax, 0
+            jl clockwise
+
+            counterclockwise:
+                mov byte[isClockwise], 0
+                jmp point_side_check
+
+            clockwise:
+                mov byte[isClockwise], 1
+        
+        ; ===== DRAW POINTS TO FILL THE TRIANGLE ===== ;
+        ; === set beginning point of the fill square === ;eax
+        mov edi, dword[x1]
+        mov esi, dword[x2]
+        mov edx, dword[x3]
+        mov rax, 0
+        call min
+        mov dword[minX], eax
+
+        mov edi, dword[y1]
+        mov esi, dword[y2]
+        mov edx, dword[y3]
+        mov rax, 0
+        call min
+        mov dword[minY], eax
+
+        mov edi, dword[x1]
+        mov esi, dword[x2]
+        mov edx, dword[x3]
+        mov rax, 0
+        call max
+        mov dword[maxX], eax
+
+        mov edi, dword[y1]
+        mov esi, dword[y2]
+        mov edx, dword[y3]
+        mov rax, 0
+        call max
+        mov dword[maxY], eax
+
+        ; === put random color in edx === ;
+        mov rdi, 250
+        mov rax, 0
+        call getRandomNumber
+        mov byte[fillColor], al
+        
+        mov rdi, 250
+        mov rax, 0
+        call getRandomNumber
+        mov byte[fillColor + 1], al
+
+        mov rdi, 250
+        mov rax, 0
+        call getRandomNumber
+        mov byte[fillColor + 2], al
+
+        mov byte[fillColor + 3], 0
+
+        mov rdi, poney
+        mov rax, 0
+        call printf
+
+        mov rdi,qword[display_name]
+        mov rsi,qword[gc]
+        mov edx,dword[fillColor]
+        mov rax, 0
+        call XSetForeground
+
+        mov rax, 0
+
+        ; ===== DISPLAY THE POINTS IN THE TRIANGLE ===== ;
+        mov eax, dword[minX]
+        mov dword[currentX], eax
+        points_loop_x:
+            mov eax, dword[minY]
+            mov dword[currentY], eax
+            points_loop_y:
+                ; ===== CHECK IF POINT IS IN THE TRIANGLE ===== ;
+                point_side_check:
+                    side_1:
+                        mov edi, dword[x2]
+                        mov esi, dword[y2]
+                        mov edx, dword[x1]
+                        mov ecx, dword[y1]
+                        mov r8d, dword[currentX]
+                        mov r9d, dword[currentY]
+                        mov rax, 0
+                        call getDeterminant
+                        mov dword[determinant], eax
+
+                        cmp dword[determinant], 0
+                        jl first_left
+                        
+                        first_right:
+                            mov byte[isRight], 1
+                            jmp side_2
+
+                        first_left:
+                            mov byte[isRight], 0
+
+                    side_2:
+                        mov edi, dword[x3]
+                        mov esi, dword[y3]
+                        mov edx, dword[x2]
+                        mov ecx, dword[y2]
+                        mov r8d, dword[currentX]
+                        mov r9d, dword[currentY]
+                        mov rax, 0
+                        call getDeterminant
+                        mov dword[determinant], eax
+
+                        cmp dword[determinant], 0
+                        jl second_left
+
+                        second_right:
+                            cmp byte[isRight], 0
+                            je point_outside
+                            jmp side_3
+                        
+                        second_left:
+                            cmp byte[isRight], 1
+                            je point_outside
+                    
+                    side_3:
+                        mov edi, dword[x1]
+                        mov esi, dword[y1]
+                        mov edx, dword[x3]
+                        mov ecx, dword[y3]
+                        mov r8d, dword[currentX]
+                        mov r9d, dword[currentY]
+                        mov rax, 0
+                        call getDeterminant
+                        mov dword[determinant], eax
+
+                        cmp dword[determinant], 0
+                        jl third_left
+
+                        third_right:
+                            cmp byte[isRight], 0
+                            je point_outside
+                            jmp all_right
+                        
+                        third_left:
+                            cmp byte[isRight], 1
+                            je point_outside
+                            jmp all_left
+
+                    all_right:
+                        cmp byte[isClockwise], 1
+                        je point_inside
+                        jmp point_outside
+
+                    all_left:
+                        cmp byte[isClockwise], 0
+                        je point_inside
+                        jmp point_outside 
+
+                point_inside:
+                    jmp draw_point
+                
+                point_outside:
+                    jmp points_loop_y_check
+
+                draw_point:
+                    mov rdi, qword[display_name]
+                    mov rsi, qword[window]
+                    mov rdx, qword[gc]
+                    mov ecx, dword[currentX]
+                    mov r8d, dword[currentY]
+                    mov rax, 0
+                    call XDrawPoint
+                
+                points_loop_y_check:
+                    inc dword[currentY]
+                    mov eax, dword[maxY]
+                    cmp dword[currentY], eax
+                    jle points_loop_y
+
+            points_loop_x_check:
+                inc dword[currentX]
+                mov eax, dword[maxX]
+                cmp dword[currentX], eax
+                jle points_loop_x
+        
+        ; === print min and max to show thagt sometimes they are not called === ;
+        mov rdi, check
+        mov esi, dword[minX]
+        mov rax, 0
+        call printf
+
+        mov rdi, check
+        mov esi, dword[minY]
+        mov rax, 0
+        call printf
+
+        mov rdi, check
+        mov esi, dword[maxX]
+        mov rax, 0
+        call printf
+
+        mov rdi, check
+        mov esi, dword[maxY]
+        mov rax, 0
+        call printf
+
+         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === set draw color === ;
         mov rdi,qword[display_name]
         mov rsi,qword[gc]
@@ -230,153 +471,6 @@ draw:
         push rbx
         call XDrawLine
         pop rbx
-
-        ; ===== CHECK IF TRIANGLE IS CLOCKWISE ===== ;
-        clockwise_check:
-            mov edi, dword[x1]
-            mov esi, dword[y1]
-            mov edx, dword[x2]
-            mov ecx, dword[y2]
-            mov r8d, dword[x3]
-            mov r9d, dword[y3]
-            call getDeterminant
-            mov dword[determinant], eax
-
-            cmp rax, 0
-            jl clockwise
-
-            counterclockwise:
-                mov byte[isClockwise], 0
-                jmp point_side_check
-
-            clockwise:
-                mov byte[isClockwise], 1
-        
-        ; ===== SET FILL DRAW COLOR ===== ;
-        ; === put random color in edx === ;
-        mov rdi, 250
-        call getRandomNumber
-        mov byte[fillColor], al
-        
-        mov rdi, 250
-        call getRandomNumber
-        mov byte[fillColor + 1], al
-
-        mov rdi, 250
-        call getRandomNumber
-        mov byte[fillColor + 2], al
-
-        mov byte[fillColor + 3], 0
-
-        mov rdi,qword[display_name]
-        mov rsi,qword[gc]
-        mov edx,dword[fillColor]
-        call XSetForeground
-
-        mov dword[currentX], 0
-        points_loop_x:
-            mov dword[currentY], 0
-            points_loop_y:
-                ; ===== CHECK IF POINT IS ON THE RIGHT SIDE OF EACH SIDE ===== ;
-                point_side_check:
-                    side_1:
-                        mov edi, dword[x2]
-                        mov esi, dword[y2]
-                        mov edx, dword[x1]
-                        mov ecx, dword[y1]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
-                        call getDeterminant
-                        mov dword[determinant], eax
-
-                        cmp dword[determinant], 0
-                        jl first_left
-                        
-                        first_right:
-                            mov byte[isRight], 1
-                            jmp side_2
-
-                        first_left:
-                            mov byte[isRight], 0
-
-                    side_2:
-                        mov edi, dword[x3]
-                        mov esi, dword[y3]
-                        mov edx, dword[x2]
-                        mov ecx, dword[y2]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
-                        call getDeterminant
-                        mov dword[determinant], eax
-
-                        cmp dword[determinant], 0
-                        jl second_left
-
-                        second_right:
-                            cmp byte[isRight], 0
-                            je point_outside
-                            jmp side_3
-                        
-                        second_left:
-                            cmp byte[isRight], 1
-                            je point_outside
-                    
-                    side_3:
-                        mov edi, dword[x1]
-                        mov esi, dword[y1]
-                        mov edx, dword[x3]
-                        mov ecx, dword[y3]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
-                        call getDeterminant
-                        mov dword[determinant], eax
-
-                        cmp dword[determinant], 0
-                        jl third_left
-
-                        third_right:
-                            cmp byte[isRight], 0
-                            je point_outside
-                            jmp all_right
-                        
-                        third_left:
-                            cmp byte[isRight], 1
-                            je point_outside
-                            jmp all_left
-
-                    all_right:
-                        cmp byte[isClockwise], 1
-                        je point_inside
-                        jmp point_outside
-
-                    all_left:
-                        cmp byte[isClockwise], 0
-                        je point_inside
-                        jmp point_outside 
-
-                point_inside:
-                    jmp draw_point
-                
-                point_outside:
-                    jmp points_loop_y_check
-
-                draw_point:
-                    mov rdi, qword[display_name]
-                    mov rsi, qword[window]
-                    mov rdx, qword[gc]
-                    mov ecx, dword[currentX]
-                    mov r8d, dword[currentY]
-                    call XDrawPoint
-                
-                points_loop_y_check:
-                    inc dword[currentY]
-                    cmp dword[currentY], 500
-                    jle points_loop_y
-
-            points_loop_x_check:
-                inc dword[currentX]
-                cmp dword[currentX], 500
-                jle points_loop_x
 
         ; ===== triangles loop check ===== ;
         triangle_loop_check:
