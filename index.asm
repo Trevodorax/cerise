@@ -37,7 +37,7 @@ extern getDeterminant
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NB_TRIANGLES  3
+%define NB_TRIANGLES  5
 %define WINDOW_SIZE 500
 
 global main
@@ -49,6 +49,7 @@ check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3
 check: db "%hhu", 10, 0
 point_in_triangle_str: db "Point in triangle", 10, 0
 isDrawDone: db 0
+
 
 section .bss
 display_name:	resq	1
@@ -70,6 +71,7 @@ currentY: resd 1
 determinant: resd 1
 isClockwise: resb 1
 isRight: resb 1
+fillColor: resd 1
 
 section .text
 
@@ -158,12 +160,6 @@ handle_events:
 draw:
     mov byte[isDrawDone], 1
     triangles_loop:
-        ; === set draw color === ;
-        mov rdi,qword[display_name]
-        mov rsi,qword[gc]
-        mov edx,0x000000
-        call XSetForeground
-
         ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
         ; === vertex 1 === ;
         mov rdi, WINDOW_SIZE
@@ -193,6 +189,12 @@ draw:
         mov dword[y3], eax
 
         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
+        ; === set draw color === ;
+        mov rdi,qword[display_name]
+        mov rsi,qword[gc]
+        mov edx,0x000000
+        call XSetForeground
+
         ; === line 1 === ;
         mov rdi, qword[display_name]
         mov rsi, qword[window]
@@ -250,6 +252,27 @@ draw:
             clockwise:
                 mov byte[isClockwise], 1
         
+        ; ===== SET FILL DRAW COLOR ===== ;
+        ; === put random color in edx === ;
+        mov rdi, 250
+        call getRandomNumber
+        mov byte[fillColor], al
+        
+        mov rdi, 250
+        call getRandomNumber
+        mov byte[fillColor + 1], al
+
+        mov rdi, 250
+        call getRandomNumber
+        mov byte[fillColor + 2], al
+
+        mov byte[fillColor + 3], 0
+
+        mov rdi,qword[display_name]
+        mov rsi,qword[gc]
+        mov edx,dword[fillColor]
+        call XSetForeground
+
         mov dword[currentX], 0
         points_loop_x:
             mov dword[currentY], 0
@@ -348,12 +371,12 @@ draw:
                 points_loop_y_check:
                     inc dword[currentY]
                     cmp dword[currentY], 500
-                    jbe points_loop_y
-                
+                    jle points_loop_y
+
             points_loop_x_check:
                 inc dword[currentX]
                 cmp dword[currentX], 500
-                jbe points_loop_x
+                jle points_loop_x
 
         ; ===== triangles loop check ===== ;
         triangle_loop_check:
