@@ -39,20 +39,17 @@ extern max
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NB_TRIANGLES  2
+%define NB_TRIANGLES  1
 %define WINDOW_SIZE 500
 
 global main
 
 section .data
 triangles_count: db    0
-event:		times	100 dq 0
-check_points_str: db "x1: %u", 10, "y1: %u", 10, "x2: %u", 10, "y2: %u", 10, "x3: %u", 10, "y3: %u", 10, 10, 0
+event:		times	24 dq 0
 check: db "%d ", 10, 0
-point_in_triangle_str: db "Point in triangle", 10, 0
 isDrawDone: db 0
 poney: db "poney", 10, 0
-
 
 section .bss
 display_name:	resq	1
@@ -93,6 +90,7 @@ push rbp
 ; mov dword[x3], 300
 ; mov dword[y3], 250
 
+; === initial search points value === ;
 mov dword[minX], 0
 mov dword[minY], 0
 mov dword[maxX], WINDOW_SIZE
@@ -164,7 +162,7 @@ handle_events:
     call XNextEvent
 
     ; === draw if drawing hasn't been done yet === ;
-    cmp byte[isDrawDone], 0    
+    cmp byte[isDrawDone], 0
     je draw
 
     ; === stop program if a key is pressed === ;
@@ -224,210 +222,195 @@ draw:
             call getDeterminant
             mov dword[determinant], eax
 
-            cmp rax, 0
+            cmp dword[determinant], 0
             jl clockwise
 
             counterclockwise:
                 mov byte[isClockwise], 0
-                jmp point_side_check
+                jmp fill_rectangle
 
             clockwise:
                 mov byte[isClockwise], 1
         
         ; ===== DRAW POINTS TO FILL THE TRIANGLE ===== ;
-        ; === set beginning point of the fill square === ;eax
-        mov edi, dword[x1]
-        mov esi, dword[x2]
-        mov edx, dword[x3]
-        mov rax, 0
-        call min
-        mov dword[minX], eax
+        fill_rectangle:
+            ; === set beginning point of the fill square === ;
+            ; minX
+            mov edi, dword[x1]
+            mov esi, dword[x2]
+            mov edx, dword[x3]
+            mov rax, 0
+            call min
+            mov dword[minX], eax
 
-        mov edi, dword[y1]
-        mov esi, dword[y2]
-        mov edx, dword[y3]
-        mov rax, 0
-        call min
-        mov dword[minY], eax
+            ; minY
+            mov edi, dword[y1]
+            mov esi, dword[y2]
+            mov edx, dword[y3]
+            mov rax, 0
+            call min
+            mov dword[minY], eax
 
-        mov edi, dword[x1]
-        mov esi, dword[x2]
-        mov edx, dword[x3]
-        mov rax, 0
-        call max
-        mov dword[maxX], eax
+            ; maxX
+            mov edi, dword[x1]
+            mov esi, dword[x2]
+            mov edx, dword[x3]
+            mov rax, 0
+            call max
+            mov dword[maxX], eax
 
-        mov edi, dword[y1]
-        mov esi, dword[y2]
-        mov edx, dword[y3]
-        mov rax, 0
-        call max
-        mov dword[maxY], eax
+            ; maxY
+            mov edi, dword[y1]
+            mov esi, dword[y2]
+            mov edx, dword[y3]
+            mov rax, 0
+            call max
+            mov dword[maxY], eax
 
-        ; === put random color in edx === ;
-        mov rdi, 250
-        mov rax, 0
-        call getRandomNumber
-        mov byte[fillColor], al
-        
-        mov rdi, 250
-        mov rax, 0
-        call getRandomNumber
-        mov byte[fillColor + 1], al
+            ; === put random color in edx === ;
+            ; red
+            mov rdi, 250
+            mov rax, 0
+            call getRandomNumber
+            mov byte[fillColor], al
+            
+            ; green
+            mov rdi, 250
+            mov rax, 0
+            call getRandomNumber
+            mov byte[fillColor + 1], al
 
-        mov rdi, 250
-        mov rax, 0
-        call getRandomNumber
-        mov byte[fillColor + 2], al
+            ; blue
+            mov rdi, 250
+            mov rax, 0
+            call getRandomNumber
+            mov byte[fillColor + 2], al
 
-        mov byte[fillColor + 3], 0
+            ; make sure there is nothing here
+            mov byte[fillColor + 3], 0 
 
-        mov rdi, poney
-        mov rax, 0
-        call printf
+            ; set the color accordingly
+            mov rdi,qword[display_name]
+            mov rsi,qword[gc]
+            mov edx,dword[fillColor]
+            mov rax, 0
+            call XSetForeground
 
-        mov rdi,qword[display_name]
-        mov rsi,qword[gc]
-        mov edx,dword[fillColor]
-        mov rax, 0
-        call XSetForeground
+            mov rax, 0
 
-        mov rax, 0
+            ; ===== DISPLAY THE POINTS IN THE TRIANGLE ===== ;
+            mov eax, dword[minX]
+            mov dword[currentX], 0 ; eax
+            points_loop_x:
+                mov eax, dword[minY]
+                mov dword[currentY], 0 ; eax
+                points_loop_y:
+                    ; ===== CHECK IF POINT IS IN THE TRIANGLE ===== ;
+                    point_side_check:
+                        side_1:
+                            mov edi, dword[x2]
+                            mov esi, dword[y2]
+                            mov edx, dword[x1]
+                            mov ecx, dword[y1]
+                            mov r8d, dword[currentX]
+                            mov r9d, dword[currentY]
+                            mov rax, 0
+                            call getDeterminant
+                            mov dword[determinant], eax
 
-        ; ===== DISPLAY THE POINTS IN THE TRIANGLE ===== ;
-        mov eax, dword[minX]
-        mov dword[currentX], eax
-        points_loop_x:
-            mov eax, dword[minY]
-            mov dword[currentY], eax
-            points_loop_y:
-                ; ===== CHECK IF POINT IS IN THE TRIANGLE ===== ;
-                point_side_check:
-                    side_1:
-                        mov edi, dword[x2]
-                        mov esi, dword[y2]
-                        mov edx, dword[x1]
-                        mov ecx, dword[y1]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
-                        mov rax, 0
-                        call getDeterminant
-                        mov dword[determinant], eax
+                            cmp dword[determinant], 0
+                            jl first_left
+                            
+                            first_right:
+                                mov byte[isRight], 1
+                                jmp side_2
 
-                        cmp dword[determinant], 0
-                        jl first_left
+                            first_left:
+                                mov byte[isRight], 0
+
+                        side_2:
+                            mov edi, dword[x3]
+                            mov esi, dword[y3]
+                            mov edx, dword[x2]
+                            mov ecx, dword[y2]
+                            mov r8d, dword[currentX]
+                            mov r9d, dword[currentY]
+                            mov rax, 0
+                            call getDeterminant
+                            mov dword[determinant], eax
+
+                            cmp dword[determinant], 0
+                            jl second_left
+
+                            second_right:
+                                cmp byte[isRight], 0
+                                je point_outside
+                                jmp side_3
+                            
+                            second_left:
+                                cmp byte[isRight], 1
+                                je point_outside
                         
-                        first_right:
-                            mov byte[isRight], 1
-                            jmp side_2
+                        side_3:
+                            mov edi, dword[x1]
+                            mov esi, dword[y1]
+                            mov edx, dword[x3]
+                            mov ecx, dword[y3]
+                            mov r8d, dword[currentX]
+                            mov r9d, dword[currentY]
+                            mov rax, 0
+                            call getDeterminant
+                            mov dword[determinant], eax
 
-                        first_left:
-                            mov byte[isRight], 0
+                            cmp dword[determinant], 0
+                            jl third_left
 
-                    side_2:
-                        mov edi, dword[x3]
-                        mov esi, dword[y3]
-                        mov edx, dword[x2]
-                        mov ecx, dword[y2]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
-                        mov rax, 0
-                        call getDeterminant
-                        mov dword[determinant], eax
+                            third_right:
+                                cmp byte[isRight], 0
+                                je point_outside
+                                jmp all_right
+                            
+                            third_left:
+                                cmp byte[isRight], 1
+                                je point_outside
+                                jmp all_left
 
-                        cmp dword[determinant], 0
-                        jl second_left
+                        all_right:
+                            cmp byte[isClockwise], 1
+                            je point_inside
+                            jmp point_outside
 
-                        second_right:
-                            cmp byte[isRight], 0
-                            je point_outside
-                            jmp side_3
-                        
-                        second_left:
-                            cmp byte[isRight], 1
-                            je point_outside
+                        all_left:
+                            cmp byte[isClockwise], 0
+                            je point_inside
+                            jmp point_outside 
+
+                    point_inside:
+                        jmp draw_point
                     
-                    side_3:
-                        mov edi, dword[x1]
-                        mov esi, dword[y1]
-                        mov edx, dword[x3]
-                        mov ecx, dword[y3]
-                        mov r8d, dword[currentX]
-                        mov r9d, dword[currentY]
+                    point_outside:
+                        jmp points_loop_y_check
+
+                    draw_point:
+                        mov rdi, qword[display_name]
+                        mov rsi, qword[window]
+                        mov rdx, qword[gc]
+                        mov ecx, dword[currentX]
+                        mov r8d, dword[currentY]
                         mov rax, 0
-                        call getDeterminant
-                        mov dword[determinant], eax
-
-                        cmp dword[determinant], 0
-                        jl third_left
-
-                        third_right:
-                            cmp byte[isRight], 0
-                            je point_outside
-                            jmp all_right
-                        
-                        third_left:
-                            cmp byte[isRight], 1
-                            je point_outside
-                            jmp all_left
-
-                    all_right:
-                        cmp byte[isClockwise], 1
-                        je point_inside
-                        jmp point_outside
-
-                    all_left:
-                        cmp byte[isClockwise], 0
-                        je point_inside
-                        jmp point_outside 
-
-                point_inside:
-                    jmp draw_point
-                
-                point_outside:
-                    jmp points_loop_y_check
-
-                draw_point:
-                    mov rdi, qword[display_name]
-                    mov rsi, qword[window]
-                    mov rdx, qword[gc]
-                    mov ecx, dword[currentX]
-                    mov r8d, dword[currentY]
-                    mov rax, 0
-                    call XDrawPoint
-                
+                        call XDrawPoint
+                    
                 points_loop_y_check:
                     inc dword[currentY]
                     mov eax, dword[maxY]
-                    cmp dword[currentY], eax
-                    jle points_loop_y
+                    cmp dword[currentY], 500 ; eax
+                    jl points_loop_y
 
             points_loop_x_check:
                 inc dword[currentX]
                 mov eax, dword[maxX]
-                cmp dword[currentX], eax
-                jle points_loop_x
-        
-        ; === print min and max to show thagt sometimes they are not called === ;
-        mov rdi, check
-        mov esi, dword[minX]
-        mov rax, 0
-        call printf
-
-        mov rdi, check
-        mov esi, dword[minY]
-        mov rax, 0
-        call printf
-
-        mov rdi, check
-        mov esi, dword[maxX]
-        mov rax, 0
-        call printf
-
-        mov rdi, check
-        mov esi, dword[maxY]
-        mov rax, 0
-        call printf
+                cmp dword[currentX], 500; eax
+                jl points_loop_x
 
          ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
         ; === set draw color === ;
