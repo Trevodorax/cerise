@@ -79,6 +79,8 @@ getDeterminant:
     ; ====== END CALCULATIONS ======= ;
     ; =============================== ;
 
+    add rsp, 48
+
     mov rsp, rbp
     pop rbp
 
