@@ -39,7 +39,7 @@ extern max
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NB_TRIANGLES  1
+%define NB_TRIANGLES  3
 %define WINDOW_SIZE 500
 
 global main
