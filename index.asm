@@ -39,7 +39,7 @@ extern max
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define NB_TRIANGLES  5
+%define NB_TRIANGLES  3
 %define WINDOW_SIZE 500
 
 global main
@@ -300,10 +300,10 @@ draw:
 
             ; ===== DISPLAY THE POINTS IN THE TRIANGLE ===== ;
             mov eax, dword[minX]
-            mov dword[currentX], eax
+            mov dword[currentX], 0 ; eax
             points_loop_x:
                 mov eax, dword[minY]
-                mov dword[currentY], eax
+                mov dword[currentY], 0 ; eax
                 points_loop_y:
                     ; ===== CHECK IF POINT IS IN THE TRIANGLE ===== ;
                     point_side_check:
@@ -403,13 +403,13 @@ draw:
                 points_loop_y_check:
                     inc dword[currentY]
                     mov eax, dword[maxY]
-                    cmp dword[currentY], eax
+                    cmp dword[currentY], 500 ; eax
                     jl points_loop_y
 
             points_loop_x_check:
                 inc dword[currentX]
                 mov eax, dword[maxX]
-                cmp dword[currentX], eax
+                cmp dword[currentX], 500; eax
                 jl points_loop_x
 
          ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
