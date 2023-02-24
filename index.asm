@@ -1,4 +1,3 @@
-; external functions from X11 library
 extern XOpenDisplay
 extern XDisplayName
 extern XCloseDisplay
@@ -14,12 +13,10 @@ extern XDrawPoint
 extern XFillArc
 extern XNextEvent
 
-; external functions from stdio library (ld-linux-x86-64.so.2)
 extern printf
 extern exit
 extern sleep
 
-; internal functions
 extern initX11
 extern getRandomNumber
 extern getDeterminant
@@ -82,70 +79,51 @@ section .text
 main:
 push rbp
 
-; ===== TEST VALUES HERE ===== ;
-; mov dword[x1], 50
-; mov dword[y1], 100
-; mov dword[x2], 100
-; mov dword[y2], 200
-; mov dword[x3], 300
-; mov dword[y3], 250
-
-; === initial search points value === ;
 mov dword[minX], 0
 mov dword[minY], 0
 mov dword[maxX], WINDOW_SIZE
 mov dword[maxY], WINDOW_SIZE
 
 x11_init:
-    ; ===== INIT THE X11 WINDOW ===== ;
-    ; === create a display === ;
     xor rdi, rdi
     mov rax, 0
     call XOpenDisplay
     mov qword[display_name], rax
 
-    ; === get screen name === ;
-    ; display_name structure
-    ; screen = DefaultScreen(display_name);
     mov     rax,qword[display_name]
     mov     eax,dword[rax+0xe0]
     mov     dword[screen],eax
 
-    ; === get parent of the window === ;
     mov rdi, qword[display_name]
     mov esi, dword[screen]
     mov rax, 0
     call XRootWindow
     mov rbx, rax
 
-    ; === create a window === ;
     mov rdi, qword[display_name]
     mov rsi, rbx
-    mov rdx, 10      ; window position
-    mov rcx, 10      ; window position
-    mov r8, WINDOW_SIZE      ; width
-    mov r9, WINDOW_SIZE	    ; height
-    push 0xFFFFFF   ; border
-    push 0x00FF00   ; background
+    mov rdx, 10
+    mov rcx, 10
+    mov r8, WINDOW_SIZE      
+    mov r9, WINDOW_SIZE	    
+    push 0xFFFFFF   
+    push 0x00FF00   
     push 1
     mov rax, 0
     call XCreateSimpleWindow
     mov qword[window], rax
 
-    ; === setup events === ;
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rdx, StructureNotifyMask
     mov rax, 0
     call XSelectInput
 
-    ; === map the window === ;
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rax, 0
     call XMapWindow
 
-    ; === create graphics context for the window === ;
     mov rsi, qword[window]
     mov rdx, 0
     mov rcx, 0
@@ -153,32 +131,23 @@ x11_init:
     call XCreateGC
     mov qword[gc], rax
 
-; ===== HANDLE EVENTS ===== ;
 handle_events:
-    ; === get event === ;
     mov rdi, qword[display_name]
     mov rsi, event
     mov rax, 0
     call XNextEvent
 
-    ; === draw if drawing hasn't been done yet === ;
     cmp byte[isDrawDone], 0
     je draw
 
-    ; === stop program if a key is pressed === ;
-    cmp dword[event], KeyPress           ; KeyPress = event when any key is pressed
+    cmp dword[event], KeyPress
     je closeDisplay
 
     jmp handle_events
 
-; ================================ ;
-; ====== DRAWING ZONE START ====== ;
-; ================================ ;
 draw:
     mov byte[isDrawDone], 1
     triangles_loop:
-        ; ===== CREATE RANDOM POINTS FOR EACH VERTEX ===== ;
-        ; === vertex 1 === ;
         mov rdi, WINDOW_SIZE
         mov rax, 0
         call getRandomNumber
@@ -189,7 +158,6 @@ draw:
         call getRandomNumber
         mov dword[y1], eax
 
-        ; === vertex 2 === ;
         mov rdi, WINDOW_SIZE
         mov rax, 0
         call getRandomNumber
@@ -200,7 +168,6 @@ draw:
         call getRandomNumber
         mov dword[y2], eax
 
-        ; === vertex 3 === ;
         mov rdi, WINDOW_SIZE
         mov rax, 0
         call getRandomNumber
@@ -211,7 +178,6 @@ draw:
         call getRandomNumber
         mov dword[y3], eax
 
-        ; ===== CHECK IF TRIANGLE IS CLOCKWISE ===== ;
         clockwise_check:
             mov edi, dword[x1]
             mov esi, dword[y1]
@@ -232,10 +198,7 @@ draw:
             clockwise:
                 mov byte[isClockwise], 1
         
-        ; ===== DRAW POINTS TO FILL THE TRIANGLE ===== ;
         fill_rectangle:
-            ; === set beginning point of the fill square === ;
-            ; minX
             mov edi, dword[x1]
             mov esi, dword[x2]
             mov edx, dword[x3]
@@ -243,7 +206,6 @@ draw:
             call min
             mov dword[minX], eax
 
-            ; minY
             mov edi, dword[y1]
             mov esi, dword[y2]
             mov edx, dword[y3]
@@ -251,7 +213,6 @@ draw:
             call min
             mov dword[minY], eax
 
-            ; maxX
             mov edi, dword[x1]
             mov esi, dword[x2]
             mov edx, dword[x3]
@@ -259,7 +220,6 @@ draw:
             call max
             mov dword[maxX], eax
 
-            ; maxY
             mov edi, dword[y1]
             mov esi, dword[y2]
             mov edx, dword[y3]
@@ -267,29 +227,23 @@ draw:
             call max
             mov dword[maxY], eax
 
-            ; === put random color in edx === ;
-            ; red
             mov rdi, 250
             mov rax, 0
             call getRandomNumber
             mov byte[fillColor], al
             
-            ; green
             mov rdi, 250
             mov rax, 0
             call getRandomNumber
             mov byte[fillColor + 1], al
 
-            ; blue
             mov rdi, 250
             mov rax, 0
             call getRandomNumber
             mov byte[fillColor + 2], al
 
-            ; make sure there is nothing here
             mov byte[fillColor + 3], 0 
 
-            ; set the color accordingly
             mov rdi,qword[display_name]
             mov rsi,qword[gc]
             mov edx,dword[fillColor]
@@ -298,14 +252,12 @@ draw:
 
             mov rax, 0
 
-            ; ===== DISPLAY THE POINTS IN THE TRIANGLE ===== ;
             mov eax, dword[minX]
-            mov dword[currentX], 0 ; eax
+            mov dword[currentX], 0 
             points_loop_x:
                 mov eax, dword[minY]
-                mov dword[currentY], 0 ; eax
+                mov dword[currentY], 0 
                 points_loop_y:
-                    ; ===== CHECK IF POINT IS IN THE TRIANGLE ===== ;
                     point_side_check:
                         side_1:
                             mov edi, dword[x2]
@@ -403,23 +355,20 @@ draw:
                 points_loop_y_check:
                     inc dword[currentY]
                     mov eax, dword[maxY]
-                    cmp dword[currentY], 500 ; eax
+                    cmp dword[currentY], 500 
                     jl points_loop_y
 
             points_loop_x_check:
                 inc dword[currentX]
                 mov eax, dword[maxX]
-                cmp dword[currentX], 500; eax
+                cmp dword[currentX], 500
                 jl points_loop_x
 
-         ; ===== DRAW LINES FOR EACH SIDE OF TRIANGLE ===== ;
-        ; === set draw color === ;
         mov rdi,qword[display_name]
         mov rsi,qword[gc]
         mov edx,0x000000
         call XSetForeground
 
-        ; === line 1 === ;
         mov rdi, qword[display_name]
         mov rsi, qword[window]
         mov rdx, qword[gc]
@@ -431,7 +380,6 @@ draw:
         call XDrawLine
         pop rbx
 
-        ; === line 2 === ;
         mov rdi, qword[display_name]
         mov rsi, qword[window]
         mov rdx, qword[gc]
@@ -443,7 +391,6 @@ draw:
         call XDrawLine
         pop rbx
 
-        ; === line 3 === ;
         mov rdi, qword[display_name]
         mov rsi, qword[window]
         mov rdx, qword[gc]
@@ -455,19 +402,13 @@ draw:
         call XDrawLine
         pop rbx
 
-        ; ===== triangles loop check ===== ;
         triangle_loop_check:
             inc byte[triangles_count]
             cmp byte[triangles_count], NB_TRIANGLES
             jb triangles_loop
 
-; ================================ ;
-; ======= DRAWING ZONE END ======= ;
-; ================================ ;
-
 jmp handle_events
 
-; ===== END OF PROGRAM ===== ;
 closeDisplay:
     mov     rax,qword[display_name]
     mov     rdi,rax

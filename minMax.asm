@@ -1,7 +1,6 @@
 global min
 global max
 
-; takes 3 numbers, returns the smallest
 min:
     push rbp
     mov rbp, rsp
@@ -37,7 +36,6 @@ min:
         pop rbp
 ret
 
-; takes 3 numbers, returns the biggest
 max:
     push rbp
     mov rbp, rsp
